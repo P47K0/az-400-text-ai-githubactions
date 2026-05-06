@@ -40,6 +40,18 @@ resource "azurerm_container_app" "llm_adapter" {
         name        = "CF_API_TOKEN"
         secret_name = "cf-api-token"
       }
+      env {
+        name        = "PROMPT_TEMPLATE"
+        value       = ""
+      }
+      env {
+        name        = "LANGUAGE_PROMPT_TEMPLATE"
+        value       = ""
+      }
+      env {
+        name  = "OLLAMA_URL"
+        value = "https://ollama.pkoorevaar.workers.dev"
+      }
     }
   }
 
@@ -69,13 +81,13 @@ resource "azurerm_container_app" "text_api" {
   template {
     container {
       name   = "api"
-      image  = "${var.dockerhub_username}/text-intelligence-api:${var.image_tag}"
+      image  = "${var.dockerhub_username}/sentiment-api:${var.image_tag}"
       cpu    = 0.5
       memory = "1Gi"
 
       env {
-        name  = "OLLAMA_URL"
-        value = "https://your-ollama-proxy.yourusername.workers.dev"   # ← Change this
+        name  = "ADAPTER_URL"
+        value = "http://llm-adapter:5000"
       }
     }
   }
