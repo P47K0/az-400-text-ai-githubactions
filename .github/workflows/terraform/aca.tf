@@ -1,27 +1,26 @@
 data "azurerm_resource_group" "rg" {
-  name     = rg-koorevaar-com
+  name = "rg-koorevaar-com"
 }
 
 resource "azurerm_log_analytics_workspace" "law" {
   name                = "koorevaar-law"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_container_app_environment" "env" {
   name                       = "koorevaar-env"
-  location                   = azurerm_resource_group.rg.location
-  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = data.azurerm_resource_group.rg.location
+  resource_group_name        = data.azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 }
 
-# ==================== LLM Adapter (Internal) ====================
 resource "azurerm_container_app" "llm_adapter" {
   name                         = "llm-adapter"
   container_app_environment_id = azurerm_container_app_environment.env.id
-  resource_group_name          = azurerm_resource_group.rg.name
+  resource_group_name          = data.azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
   template {
@@ -35,18 +34,22 @@ resource "azurerm_container_app" "llm_adapter" {
         name  = "CF_ACCOUNT_ID"
         value = var.cf_account_id
       }
+
       env {
         name        = "CF_API_TOKEN"
         secret_name = "cf-api-token"
       }
+
       env {
-        name        = "PROMPT_TEMPLATE"
-        value       = ""
+        name  = "PROMPT_TEMPLATE"
+        value = ""
       }
+
       env {
-        name        = "LANGUAGE_PROMPT_TEMPLATE"
-        value       = ""
+        name  = "LANGUAGE_PROMPT_TEMPLATE"
+        value = ""
       }
+
       env {
         name  = "OLLAMA_URL"
         value = "https://ollama.pkoorevaar.workers.dev"
@@ -56,8 +59,9 @@ resource "azurerm_container_app" "llm_adapter" {
 
   ingress {
     external_enabled = false
-    target_port      = 8080
+    target_port      = 5000
     transport        = "http"
+
     traffic_weight {
       latest_revision = true
       percentage      = 100
@@ -70,11 +74,10 @@ resource "azurerm_container_app" "llm_adapter" {
   }
 }
 
-# ==================== Text Intelligence API (Public) ====================
 resource "azurerm_container_app" "text_api" {
   name                         = "text-intelligence-api"
   container_app_environment_id = azurerm_container_app_environment.env.id
-  resource_group_name          = azurerm_resource_group.rg.name
+  resource_group_name          = data.azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
   template {
@@ -93,8 +96,9 @@ resource "azurerm_container_app" "text_api" {
 
   ingress {
     external_enabled = true
-    target_port      = 8080
+    target_port      = 5000
     transport        = "http"
+
     traffic_weight {
       latest_revision = true
       percentage      = 100
@@ -107,5 +111,5 @@ output "api_fqdn" {
 }
 
 output "adapter_internal_url" {
-  value = "http://llm-adapter"
+  value = "http://llm-adapter:5000"
 }
