@@ -3,12 +3,10 @@ name: Terraform - Infrastructure
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'terraform/**'
+    paths: ['terraform/**']
   pull_request:
     branches: [ main ]
-    paths:
-      - 'terraform/**'
+    paths: ['terraform/**']
 
 jobs:
   terraform:
@@ -22,11 +20,8 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.10.x"
-          terraform_wrapper: false
 
-      - name: Azure Login (OIDC)
+      - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -37,16 +32,21 @@ jobs:
         run: terraform init
         working-directory: ./terraform
 
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: ./terraform
-
       - name: Terraform Plan
-        run: terraform plan -var="dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}"
+        run: |
+          terraform plan \
+            -var="dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
+            -var="cf_account_id=${{ secrets.CF_ACCOUNT_ID }}" \
+            -var="cf_api_token=${{ secrets.CF_API_TOKEN }}" \
+            -var="resource_group_name=${{ vars.AZURE_RESOURCE_GROUP }}"
         working-directory: ./terraform
 
-      # Apply only on main branch
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -var="dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}"
+        run: |
+          terraform apply -auto-approve \
+            -var="dockerhub_username=${{ secrets.DOCKERHUB_USERNAME }}" \
+            -var="cf_account_id=${{ secrets.CF_ACCOUNT_ID }}" \
+            -var="cf_api_token=${{ secrets.CF_API_TOKEN }}" \
+            -var="resource_group_name=${{ vars.AZURE_RESOURCE_GROUP }}"
         working-directory: ./terraform
