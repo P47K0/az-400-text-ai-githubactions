@@ -41,3 +41,7 @@ jobs:
             -var="cf_api_token=${{ secrets.CF_API_TOKEN }}" \
             -var="resource_group_name=${{ vars.AZURE_RESOURCE_GROUP }}"
         working-directory: .github/workflows/terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: .github/workflows/terraform
