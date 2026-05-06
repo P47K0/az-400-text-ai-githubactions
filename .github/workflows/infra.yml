@@ -31,7 +31,7 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        working-directory: ./terraform
+        working-directory: terraform
 
       - name: Terraform Plan
         run: |
@@ -40,4 +40,4 @@ jobs:
             -var="cf_account_id=${{ secrets.CF_ACCOUNT_ID }}" \
             -var="cf_api_token=${{ secrets.CF_API_TOKEN }}" \
             -var="resource_group_name=${{ vars.AZURE_RESOURCE_GROUP }}"
-        working-directory: ./terraform
+        working-directory: terraform
