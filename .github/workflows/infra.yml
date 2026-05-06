@@ -34,16 +34,11 @@ jobs:
         run: terraform init
         working-directory: .github/workflows/terraform
 
-      - name: Terraform Plan
+      - name: Terraform Apply
         run: |
-          terraform plan \
+          terraform apply -auto-approve \
             -var="dockerhub_username=${{ vars.DOCKERHUB_USERNAME }}" \
             -var="cf_account_id=${{ secrets.CF_ACCOUNT_ID }}" \
             -var="cf_api_token=${{ secrets.CF_API_TOKEN }}" \
             -var="resource_group_name=${{ vars.AZURE_RESOURCE_GROUP }}"
-            -out=tfplan
-        working-directory: .github/workflows/terraform
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
         working-directory: .github/workflows/terraform
