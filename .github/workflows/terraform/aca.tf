@@ -47,6 +47,10 @@ resource "azurerm_container_app" "llm_adapter" {
     external_enabled = false
     target_port      = 8080
     transport        = "http"
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
   }
 
   secret {
@@ -80,6 +84,10 @@ resource "azurerm_container_app" "text_api" {
     external_enabled = true
     target_port      = 8080
     transport        = "http"
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
   }
 }
 
