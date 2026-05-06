@@ -12,6 +12,7 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: dev
     permissions:
       contents: read
       id-token: write   # ← This is very important for OIDC
