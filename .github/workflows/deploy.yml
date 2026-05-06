@@ -34,7 +34,7 @@ jobs:
           az containerapp update \
             --name llm-adapter \
             --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.DOCKERHUB_USERNAME }}/llm-adapter:${{ inputs.image_tag || 'latest' }} \
+            --image ${{ vars.DOCKERHUB_USERNAME }}/llm-adapter:${{ inputs.image_tag || 'latest' }} \
             --revision-suffix "adapter-${{ github.sha }}"
 
       - name: Deploy Text Intelligence API
@@ -42,7 +42,7 @@ jobs:
           az containerapp update \
             --name text-intelligence-api \
             --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.DOCKERHUB_USERNAME }}/sentiment-api:${{ inputs.image_tag || 'latest' }} \
+            --image ${{ vars.DOCKERHUB_USERNAME }}/sentiment-api:${{ inputs.image_tag || 'latest' }} \
             --revision-suffix "api-${{ github.sha }}"
 
       - name: Show URLs
