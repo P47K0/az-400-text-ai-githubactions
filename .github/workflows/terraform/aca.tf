@@ -1,5 +1,5 @@
 data "azurerm_resource_group" "rg" {
-  name = "rg-koorevaar-com"
+  name = var.resource_group_name
 }
 
 resource "azurerm_log_analytics_workspace" "law" {
