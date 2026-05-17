@@ -20,6 +20,11 @@ jobs:
 
     env:
       IMAGE_TAG: gha-${{ github.run_id }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+      APP_CONFIG_NAME: ${{ vars.APP_CONFIG_NAME }}
+      APP_CONFIG_ENDPOINT: ${{ vars.APP_CONFIG_ENDPOINT }}
+      APP_CONFIG_LABEL: ${{ vars.APP_CONFIG_LABEL }}
 
     steps:
       - name: Checkout
@@ -40,7 +45,7 @@ jobs:
           context: .
           file: ./src/llm-adapter/Dockerfile
           push: true
-          tags: ${{ vars.DOCKERHUB_USERNAME }}/llm-adapter:${{ env.IMAGE_TAG }}
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/llm-adapter:gha-${{ github.run_id }}
 
       - name: Build and push Text Intelligence API
         uses: docker/build-push-action@v6
@@ -48,7 +53,7 @@ jobs:
           context: .
           file: ./src/text-intelligence-api/Dockerfile
           push: true
-          tags: ${{ vars.DOCKERHUB_USERNAME }}/sentiment-api:${{ env.IMAGE_TAG }}
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/sentiment-api:gha-${{ github.run_id }}
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -57,26 +62,76 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy LLM Adapter
+      - name: Ensure managed identity and App Config role
+        shell: bash
         run: |
+          set -euo pipefail
+
+          APP_NAME="text-intelligence-api"
+
+          az containerapp identity assign \
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --system-assigned
+
+          PRINCIPAL_ID=$(az containerapp show \
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "identity.principalId" -o tsv)
+
+          APP_CONFIG_ID=$(az appconfig show \
+            --name "$APP_CONFIG_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "id" -o tsv)
+
+          EXISTING_ASSIGNMENT_COUNT=$(az role assignment list \
+            --assignee-object-id "$PRINCIPAL_ID" \
+            --scope "$APP_CONFIG_ID" \
+            --query "[?roleDefinitionName=='App Configuration Data Reader'] | length(@)" \
+            -o tsv)
+
+          if [ "$EXISTING_ASSIGNMENT_COUNT" = "0" ]; then
+            az role assignment create \
+              --assignee-object-id "$PRINCIPAL_ID" \
+              --assignee-principal-type ServicePrincipal \
+              --role "App Configuration Data Reader" \
+              --scope "$APP_CONFIG_ID"
+          else
+            echo "App Configuration Data Reader role already assigned"
+          fi
+
+      - name: Deploy LLM Adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+
           az containerapp update \
             --name llm-adapter \
-            --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-            --image ${{ vars.DOCKERHUB_USERNAME }}/llm-adapter:${IMAGE_TAG} \
-            --revision-suffix adapter-${{ github.run_number }}
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$DOCKERHUB_USERNAME/llm-adapter:$IMAGE_TAG" \
+            --revision-suffix "adapter-${{ github.run_number }}"
 
       - name: Deploy Text Intelligence API
+        shell: bash
         run: |
+          set -euo pipefail
+
           az containerapp update \
             --name text-intelligence-api \
-            --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
-            --image ${{ vars.DOCKERHUB_USERNAME }}/sentiment-api:${IMAGE_TAG} \
-            --revision-suffix api-${{ github.run_number }}
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$DOCKERHUB_USERNAME/sentiment-api:$IMAGE_TAG" \
+            --revision-suffix "api-${{ github.run_number }}" \
+            --set-env-vars \
+              APP_CONFIG_ENDPOINT="$APP_CONFIG_ENDPOINT" \
+              APP_CONFIG_LABEL="$APP_CONFIG_LABEL"
 
       - name: Show API URL
+        shell: bash
         run: |
+          set -euo pipefail
+
           echo "Deployment completed"
           az containerapp show \
             --name text-intelligence-api \
-            --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+            --resource-group "$RESOURCE_GROUP" \
             --query "properties.configuration.ingress.fqdn" -o tsv
