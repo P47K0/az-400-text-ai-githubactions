@@ -40,7 +40,7 @@ jobs:
       - name: Build and push LLM Adapter
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./src/llm-adapter
           file: ./src/llm-adapter/Dockerfile
           push: true
           tags: ${{ vars.DOCKERHUB_USERNAME }}/llm-adapter:gha-${{ github.run_id }}
@@ -48,7 +48,7 @@ jobs:
       - name: Build and push Text Intelligence API
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./src/sentiment-api
           file: ./src/sentiment-api/Dockerfile
           push: true
           tags: ${{ vars.DOCKERHUB_USERNAME }}/sentiment-api:gha-${{ github.run_id }}
