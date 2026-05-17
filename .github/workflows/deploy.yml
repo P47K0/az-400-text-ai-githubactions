@@ -22,7 +22,6 @@ jobs:
       IMAGE_TAG: gha-${{ github.run_id }}
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
-      APP_CONFIG_NAME: ${{ vars.APP_CONFIG_NAME }}
       APP_CONFIG_ENDPOINT: ${{ vars.APP_CONFIG_ENDPOINT }}
       APP_CONFIG_LABEL: ${{ vars.APP_CONFIG_LABEL }}
 
@@ -62,44 +61,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Ensure managed identity and App Config role
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          APP_NAME="text-intelligence-api"
-
-          az containerapp identity assign \
-            --name "$APP_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --system-assigned
-
-          PRINCIPAL_ID=$(az containerapp show \
-            --name "$APP_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --query "identity.principalId" -o tsv)
-
-          APP_CONFIG_ID=$(az appconfig show \
-            --name "$APP_CONFIG_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --query "id" -o tsv)
-
-          EXISTING_ASSIGNMENT_COUNT=$(az role assignment list \
-            --assignee-object-id "$PRINCIPAL_ID" \
-            --scope "$APP_CONFIG_ID" \
-            --query "[?roleDefinitionName=='App Configuration Data Reader'] | length(@)" \
-            -o tsv)
-
-          if [ "$EXISTING_ASSIGNMENT_COUNT" = "0" ]; then
-            az role assignment create \
-              --assignee-object-id "$PRINCIPAL_ID" \
-              --assignee-principal-type ServicePrincipal \
-              --role "App Configuration Data Reader" \
-              --scope "$APP_CONFIG_ID"
-          else
-            echo "App Configuration Data Reader role already assigned"
-          fi
-
       - name: Deploy LLM Adapter
         shell: bash
         run: |
@@ -134,4 +95,5 @@ jobs:
           az containerapp show \
             --name text-intelligence-api \
             --resource-group "$RESOURCE_GROUP" \
-            --query "properties.configuration.ingress.fqdn" -o tsv
+            --query "properties.configuration.ingress.fqdn" \
+            -o tsv
