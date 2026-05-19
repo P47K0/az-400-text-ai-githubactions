@@ -80,7 +80,7 @@ jobs:
               CF_API_TOKEN="$CF_API_TOKEN" \
               PROMPT_TEMPLATE="$SENTIMENT_PROMPT_TEMPLATE" \
               LANGUAGE_PROMPT_TEMPLATE="$LANGUAGE_PROMPT_TEMPLATE" \
-              SUMMARIZE_PROMPT_TEMPLATE="$SUMMARIZE_PROMPT_TEMPLATE" \              
+              SUMMARIZE_PROMPT_TEMPLATE="$SUMMARIZE_PROMPT_TEMPLATE"              
 
       - name: Deploy Text Intelligence API
         shell: bash
