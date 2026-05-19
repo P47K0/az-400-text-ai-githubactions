@@ -17,6 +17,11 @@ jobs:
       DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
       APP_CONFIG_ENDPOINT: ${{ vars.APP_CONFIG_ENDPOINT }}
       APP_CONFIG_LABEL: ${{ vars.APP_CONFIG_LABEL }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      SENTIMENT_PROMPT_TEMPLATE: ${{ vars.SENTIMENT_PROMPT_TEMPLATE }}
+      LANGUAGE_PROMPT_TEMPLATE: ${{ vars.LANGUAGE_PROMPT_TEMPLATE }}
+      SUMMARIZE_PROMPT_TEMPLATE: ${{ vars.SUMMARIZE_PROMPT_TEMPLATE }}
 
     steps:
       - name: Checkout
@@ -69,7 +74,13 @@ jobs:
             --name llm-adapter \
             --resource-group "$RESOURCE_GROUP" \
             --image "$DOCKERHUB_USERNAME/llm-adapter:$IMAGE_TAG" \
-            --revision-suffix "adapter-${{ github.run_number }}"
+            --revision-suffix "adapter-${{ github.run_number }}" \
+            --set-env-vars \
+              CF_ACCOUNT_ID="$CF_ACCOUNT_ID" \
+              CF_API_TOKEN="$CF_API_TOKEN" \
+              PROMPT_TEMPLATE="$SENTIMENT_PROMPT_TEMPLATE" \
+              LANGUAGE_PROMPT_TEMPLATE="$LANGUAGE_PROMPT_TEMPLATE" \
+              SUMMARIZE_PROMPT_TEMPLATE="$SUMMARIZE_PROMPT_TEMPLATE" \              
 
       - name: Deploy Text Intelligence API
         shell: bash
