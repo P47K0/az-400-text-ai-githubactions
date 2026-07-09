@@ -1,0 +1,54 @@
+name: infra-db
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/cosmos/**"
+      - ".github/workflows/infra-db.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "infra/cosmos/**"
+      - ".github/workflows/infra-db.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Cosmos DB
+    runs-on: ubuntu-latest
+
+    env:
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      COSMOS_DEPLOYMENT_NAME: cosmos-${{ github.run_number }}
+      COSMOS_BICEP_FILE: infra/cosmos/main.bicep
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate Bicep
+        run: |
+          az bicep build --file "$COSMOS_BICEP_FILE"
+
+      - name: Deploy Cosmos DB
+        run: |
+          az deployment group create \
+            --name "$COSMOS_DEPLOYMENT_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file "$COSMOS_BICEP_FILE" \
+            --parameters location="$AZURE_LOCATION"
